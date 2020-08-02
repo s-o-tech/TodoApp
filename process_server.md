@@ -34,7 +34,11 @@ npm -i で一括インストール推奨
 `mysql>create database TODOAPP;`
 `mysql>use TODOAPP;`
 ## make users table
-`mysql>create table users (id int not null primary key AUTO_INCREMENT, username varchar(20) not null unique, password varchar(20) not null);`
+`mysql>create table users (id int not null primary key AUTO_INCREMENT, username varchar(20) not null unique, password varchar(20) not null, isAdmin boolean);`
+## make tasks table
+`mysql>create table tasks (id int not null primary key AUTO_INCREMENT, title varchar(100) not null, message varchar(500) not null, percent int default 0,target int not null);`
+
+`insert into tasks values (0,'hello','you should print hello world',0,0);`
 ## show users table columns
 `show columns from users;`
 ほぼYes

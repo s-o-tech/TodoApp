@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+
+    <form action="/createTask" method="post">
+        <div>
+          <label>Target：</label>
+          <select name='target'>
+            <% for(let user of users){ %>
+              <option value="<%= user.id%>"><%= user.username%></option>
+            <% }%>
+          </select>
+        </div>
+        <div>
+            <label>Title：</label>
+            <input type="text" name="title"/>
+        </div>
+        <div>
+            <label>Message：</label>
+            <textarea name="message" cols="50" rows="5"></textarea>
+        </div>
+        <div>
+            <input type="submit" value="Register"/>
+        </div>
+      </form>
+  </body>
+</html>

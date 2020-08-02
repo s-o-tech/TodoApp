@@ -1,11 +1,8 @@
-var express = require('express');
-var router = express.Router();
+let express = require('express'),
+    router = express.Router();
 
-/* GET home page. */
 router.get('/', function(req, res, next) {
-
-  if(req.session.user){
-    console.log('success');
+  if(req.isAuthenticated()){
     res.render('index', { title: 'Express' });
   }
   else{

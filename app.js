@@ -8,27 +8,19 @@ let indexRouter = require('./routes/index'),
     loginRouter = require('./routes/login'),
     logoutRouter = require('./routes/logout'),
     okRouter = require('./routes/ok'),
+    registerRouter = require('./routes/register'),
+    createTaskRouter = require('./routes/createTask'),
+    viewTaskRouter = require('./routes/viewTask'),
+
     bodyParser = require('body-parser'),
     passport = require('passport'),
     session = require('express-session'),
     LocalStrategy = require('passport-local').Strategy,
-    mysql = require('mysql'),
-    connection = mysql.createConnection({
-      host:'localhost',
-      user:'root',
-      password:'roottoor',
-      database:'TODOAPP'
-    })
+    connection = require('./dbConnect');
     app = express();
 
 //
-connection.connect(function(err){
-  if(err){
-    console.log('error connecting:' + err.stack);
-    return;
-  }
-  console.log('connect success');
-})
+
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -50,17 +42,14 @@ app.use(session({
   }
 }));
 
-
 app.use(passport.initialize());
 app.use(passport.session());
 
 passport.serializeUser(function(user, done) {
-  done(null, user.id);
+  done(null, user);
 });
-passport.deserializeUser(function(id, done) {
-  User.findById(id, function(err, user) {
-    done(err, user);
-  });
+passport.deserializeUser(function(user, done) {
+  done(null, user);
 });
 
 
@@ -70,7 +59,7 @@ passport.use(new LocalStrategy({
 },function(username, password, done) {
     connection.query(`select * from users where username="${username}"`,function(err,users){
       if(users != undefined && users.length == 1 && users[0].password == password){
-        return done(null,username);
+        return done(null,users[0]);
       }
       else{
         return done(null,false);
@@ -79,11 +68,14 @@ passport.use(new LocalStrategy({
   }
 ));
 
-
+//route
 app.use('/', indexRouter);
 app.use('/login',loginRouter);
 app.use('/ok',okRouter);
-// app.use('/logout',logoutRouter);
+app.use('/logout',logoutRouter);
+app.use('/register',registerRouter);
+app.use('/createTask',createTaskRouter);
+app.use('/viewTask',viewTaskRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
