@@ -56,3 +56,5 @@ passはLOW(0）でも良いかな
 # write login part
 
 ## 
+
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'roottoor';

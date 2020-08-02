@@ -5,7 +5,6 @@ var router = express.Router();
 router.get('/', function(req, res, next) {
 
   if(req.session.user){
-    console.log('success');
     res.render('index', { title: 'Express' });
   }
   else{
