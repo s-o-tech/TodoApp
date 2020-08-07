@@ -3,7 +3,7 @@ let express = require('express'),
 
 
 router.get('/',function(req,res,next){
-    res.render('ok',{});
+    res.render('ok',{title:'success',isAuth:req.isAuthenticated()});
 });
 
 module.exports = router;

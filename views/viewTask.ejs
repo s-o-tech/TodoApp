@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
+  <%- include('./header');%>
   <body>
-    <table>
-        <thead>
+    <h2>View Tasks</h2>
+    <table class='table table-bordered'>
+        <thead class='thead-light'>
             <tr>
-                <th>target</th>
-                <th>persent</th>
+                <th>username</th>
+                <th>percent</th>
                 <th>message</th>
             </tr>
         </thead>
@@ -17,7 +15,7 @@
             
             <% for(let task of tasks){ %>
                 <tr>
-                    <td><%= task.target%></td>
+                    <td><%= task.username%></td>
                     <td><%= task.percent%>%</td>
                     <td><%= task.message%></td>
                 </tr>

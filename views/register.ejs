@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title><%= title %></title>
-    <link rel='stylesheet' href='/stylesheets/style.css' />
-  </head>
+  <%- include('./header');%>
   <body>
       <h1>Register Page</h1>
+      <%if(errorMessage != ''){%>
+        <div class="alert alert-danger">
+          <strong>Warning!</strong>  <%= errorMessage%>
+        </div>
+      <%}%>
       <form action="/register" method="post">
         <div>
             <label>UserName：</label>

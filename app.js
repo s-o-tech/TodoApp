@@ -11,7 +11,9 @@ let indexRouter = require('./routes/index'),
     registerRouter = require('./routes/register'),
     createTaskRouter = require('./routes/createTask'),
     viewTaskRouter = require('./routes/viewTask'),
+    mypageRouter = require('./routes/mypage'),
 
+    flash = require('connect-flash'),
     bodyParser = require('body-parser'),
     passport = require('passport'),
     session = require('express-session'),
@@ -26,6 +28,7 @@ let indexRouter = require('./routes/index'),
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+app.use(flash());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -61,8 +64,11 @@ passport.use(new LocalStrategy({
       if(users != undefined && users.length == 1 && users[0].password == password){
         return done(null,users[0]);
       }
+      else if(users.length == 0){
+        return done(null,false,{message:"Invalid UserName"});
+      }
       else{
-        return done(null,false);
+        return done(null,false,{message:"Invalid Password"});
       }
     });
   }
@@ -76,6 +82,7 @@ app.use('/logout',logoutRouter);
 app.use('/register',registerRouter);
 app.use('/createTask',createTaskRouter);
 app.use('/viewTask',viewTaskRouter);
+app.use('/mypage',mypageRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

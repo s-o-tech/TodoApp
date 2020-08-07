@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <%- include('./header');%>
+  <body>
+    <h2>Hello, <%= username%></h2>
+    <hr>
+    <h2>My Tasks</h2>
+    <table class='table table-bordered'>
+        <thead class='thead-light'>
+            <tr>
+                <th>message</th>
+                <th>percent</th>
+                <th>new percent</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+            <% for(let task of tasks){ %>
+                <tr>
+                    <td><%= task.message%></td>
+                    <td><%= task.percent%>%</td>
+                    <td>
+                        <form action="/mypage" method="post">
+                            <div>
+                                <label>percent：</label>
+                                <input type="number" name="newPercent" min="0" max="100" value="<%= task.percent%>"/>
+                                <input type="hidden" name="taskID" value="<%= task.id%>"/>
+                                <input type="hidden" name="target" value="<%= task.target%>"/>
+                                <input type="submit" value="Register"/>
+                            </div>
+                            
+                        </form>
+                    </td>
+                </tr>
+                
+            <% }%>
+        </tbody>
+    </table>
+
+    <%if(isAdmin){%>
+        <hr>
+        <h2>Admin Options</h2>
+        <ul>
+            <li><a href="/createTask">CreteTask</a></li>
+        </ul>
+        
+    <%}%>
+
+  </body>
+</html>

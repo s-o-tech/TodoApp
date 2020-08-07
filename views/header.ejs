@@ -1,0 +1,48 @@
+<head>
+    <title><%=title%></title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+</head>
+
+<header>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <a href="/" class="navbar-brand">TodoApp</a>
+        <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navi-items" aria-controls="navi-items" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div id="navi-items" class="navbar-collapse collapse hide">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="/">Top</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/viewTask">viewTask</a>
+              </li>
+            </ul>
+            <ul class="nav navbar-nav ml-auto">
+            <%if(!isAuth){%>
+              <li class="nav-item">
+                <a class="nav-link" href="/register"><span class="fas fa-user"></span> Register</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/login"><span class="fas fa-sign-in-alt"></span> Login</a>
+              </li>
+            <%}else{%>
+              <li class="nav-item">
+                <a class="nav-link" href="/mypage"><span class="fas fa-user-cog"></span> Mypage</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/logout"><span class="fas fa-sign-out-alt"></span> Logout</a>
+              </li>
+            <%}%>
+            </ul>
+        </div>
+        
+    </nav>
+
+
+</header>

@@ -3,7 +3,7 @@ let express = require('express'),
     connection = require('../dbConnect');
 
 router.get('/',function(req,res,next){
-    res.render('register',{title:"Registor Tutorial"});
+    res.render('register',{title:"Registor",errorMessage:'',isAuth:req.isAuthenticated()});
 });
 
 router.post('/', function(req,res,next){
@@ -11,7 +11,7 @@ router.post('/', function(req,res,next){
         password = req.body.password;
     connection.query(`insert into users values (0,'${username}','${password}',False);`,function(err,result,fields){
         if(err){
-            res.render('register',{title:`This username(${username}) is already used`});
+            res.render('register',{title:'Registor',errorMessage:`This username(${username}) is already used`,isAuth:req.isAuthenticated()});
         }
         else{
             res.redirect('ok');
