@@ -1,10 +1,10 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+let createError = require('http-errors'),
+    express = require('express'),
+    path = require('path'),
+    cookieParser = require('cookie-parser'),
+    logger = require('morgan'),
 
-let indexRouter = require('./routes/index'),
+    indexRouter = require('./routes/index'),
     loginRouter = require('./routes/login'),
     logoutRouter = require('./routes/logout'),
     okRouter = require('./routes/ok'),
@@ -20,8 +20,6 @@ let indexRouter = require('./routes/index'),
     LocalStrategy = require('passport-local').Strategy,
     connection = require('./dbConnect');
     app = express();
-
-//
 
 
 // view engine setup
