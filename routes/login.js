@@ -1,6 +1,5 @@
 let express = require('express'),
     router = express.Router(),
-    flash = require('connect-flash'),
     passport = require('passport');
 
 router.get('/',function(req,res,next){

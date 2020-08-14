@@ -460,4 +460,305 @@ test1-test5ユーザーが登録された
 
 
 ## 9. How to authorize
-### 1. 
+### 1. Introduction
+- 下記のコードを`app.js`に追加
+```js
+var passport = require('passport');
+app.use(passport.initialize());
+```
+### 2. Local Strategy
+`Local Strategy`を使いユーザー認証を行う
+- 下記のコードを`app.js`に追加
+- `username`が`test`&& `password`が`test`のとき認証が成功するコード
+```js
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+
+passport.use(new LocalStrategy(function(username,password,done){
+  if(username == 'test' && password == 'test'){
+    return done(null,true);
+  }
+  else{
+    return done(null,false,{message:'login failured'});
+  }
+}))
+```
+
+### 3. Make Login Page
+
+`login.ejs`と`login.js`を追加  
+
+`views/login.ejs`
+```html
+<!DOCTYPE html>
+<html>
+  <body>
+      <h1>Login Page</h1>
+      <form action="/login" method="post">
+        <div>
+            <label>UserName：</label>
+            <input type="text" name="username"/>
+        </div>
+        <div>
+            <label>Password：</label>
+            <input type="password" name="password"/>
+        </div>
+        <div>
+            <input type="submit" value="Login"/>
+        </div>
+      </form>
+  </body>
+</html>
+
+```
+`routes/login.js`
+```js
+let express = require('express'),
+    router = express.Router(),
+    passport = require('passport');
+
+router.get('/',function(req,res,next){
+    res.render('login');
+});
+
+router.post('/', passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login',
+    session:false
+  }
+));
+
+module.exports = router;
+
+```
+- Routerをapp.jsで追加
+
+```js
+var loginRouter = require('./routes/login');
+
+app.use('/login',loginRouter);
+```
+
+#### check
+- `localhost:3000/login`にアクセス
+![LoginTest](./img/express_login_test.png)
+- `username`,`password`に`test`を入力し,以下のようにindexページに飛んだらログイン処理成功
+![LoginTestResult](./img/express_login_test_result.png)
+
+- ログインに失敗すると`/login`に戻される
+
+### 4. Use Database data
+データベースの`users`テーブルに登録した内容でログイン処理を行う
+#### `app.js`への追加項目
+```js
+var connection = require('./dbConnect');
+```
+- `passport.use`を変更
+```js
+passport.use(new LocalStrategy({
+    //今回の実装では省略しても良い
+    usernameField: "username", 
+    passwordField: "password", 
+  },function(username, password, done) {
+    connection.query(`select * from users where username="${username}"`,function(err,users){
+      if(users != undefined && users.length == 1 && users[0].password == password){
+        return done(null,users[0]);
+      }
+      else if(users.length == 0){
+        //"Invalid UserName"
+        return done(null,false);
+      }
+      else{
+        //"Invalid Password"
+        return done(null,false);
+      }
+    });
+  }
+));
+```
+コードの解説  
+- `LocalStrategy()`は認証情報を`username`と`password`のパラメータ名で確認している
+- `LocalStrategy()`の第1引数には別のパラメータ名で確認させる場合に使用
+  - デフォルトのパラメータ名を使っている場合は必要ない
+  - POSTで送るユーザー名を`uname`,パスワードを`pw`で使っている場合  
+```js
+new LocalStrategy({
+    usernameField: "uname", 
+    passwordField: "pw", 
+  },function(username, password, done) {
+   //処理
+  }
+));
+```
+ 
+- `LocalStrategy()`の第2引数には処理を記述
+  - 内部で`connect`を用いSQLからデータを引き出し認証する
+  - `select * from users where username="${username}"`で同じユーザー名のデータを取得
+  - パスワードが同じ場合,`done(null,users[0])`を返す
+    - `users`は配列のため,`users[0]`でユーザー情報にアクセス
+  - 違う場合,`done(null,false)`を返す
+
+#### check
+3のcheckと同様に`/login`で確認  
+
+> mysqlで以下のコードを実行
+> ```sql
+> -- 使用するデータベースを指定
+> mysql>use TODOAPP;
+> -- usersテーブルに以下のユーザーを追加
+> mysql>insert into users values (0,'test1','password',False);
+> mysql>insert into users values (0,'test2','password',False);
+> mysql>insert into users values (0,'test3','password',False);
+> mysql>insert into users values (0,'test4','password',False);
+> mysql>insert into users values (0,'test5','password',False);
+> ```
+ここで追加したいずれかのユーザーでログイン可能か確認
+
+
+### 5. Add session
+セッションを保持する処理を加える
+
+`app.js`に追加
+```js
+var session = require('express-session');
+
+app.use(session({
+  secret: 'secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 60 * 60 * 1000
+  }
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+passport.deserializeUser(function(user, done) {
+  done(null, user);
+});
+
+```
+コードの解説
+- session({...})について
+  - [express-session](https://github.com/expressjs/session)のREADMEから抜粋
+  - secret
+    - `cookie`に署名するために使用されるもの
+    - **推測できない文字列**にすることが推奨されている
+  - resave
+    - セッションが変更されなかった場合でも,セッションをセッションストア強制的に保存するかどうか
+    - 基本は`false`
+  - saveUninitialized
+    - **初期化されていない**セッションを強制的にセッションストアに保存するかどうか
+    - 基本は`false`
+  - cookie
+    - cookieの設定オブジェクト
+    - cookie.maxAge
+      - cookieの有効期限をミリ秒で設定
+
+
+`routes/login.js`を変更
+- ` session:false`を削除
+```js
+router.post('/', passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login',
+  }
+));
+```
+
+### 6. Show error message
+- Loginに失敗した際にエラーメッセージを出したい
+- `connect-flash`を使う
+
+追加内容
+```js
+var flash = require('connect-flash');
+
+app.use(flash());
+
+```
+変更内容
+- エラーメッセージを出力するために`login.ejs`,`login.js`,`app.js`を変更
+
+`login.ejs`
+- headに[Bootstrap4](https://getbootstrap.jp)を追加
+```html
+<head>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+```
+- `<h1>Login Page</h1>`の下に追加
+```html
+<%if(errorMessage != ''){%>
+  <div class="alert alert-danger">
+    <strong>Warning!</strong>  <%= errorMessage%>
+  </div>
+<%}%>
+```
+
+`login.js`  
+- `router.get`,`router.post`を変更
+```js
+router.get('/',function(req,res,next){
+    res.render('login',{errorMessage:req.flash('error')});
+});
+
+router.post('/', passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login',
+    failureFlash: true
+  }
+));
+
+```
+`app.js`
+- `passport.use()`を変更
+
+```js
+passport.use(new LocalStrategy({
+    usernameField: "username", 
+    passwordField: "password", 
+  },function(username, password, done) {
+    connection.query(`select * from users where username="${username}"`,function(err,users){
+      if(users != undefined && users.length == 1 && users[0].password == password){
+        return done(null,users[0]);
+      }
+      else if(users.length == 0){
+        return done(null,false,{message:"Invalid UserName"});
+      }
+      else{
+        return done(null,false,{message:"Invalid Password"});
+      }
+    });
+  }
+));
+```
+### **WARNING**
+>`app.js`の
+>```js
+>app.use('/', indexRouter);
+>app.use('/users', usersRouter);
+>app.use('/test',testRouter);
+>app.use('/login',loginRouter);
+>``` 
+>は
+>```js
+>app.use(session({
+>  secret: 'secret',
+>  resave: false,
+>  saveUninitialized: false,
+>  cookie: {
+>    maxAge: 60 * 60 * 1000
+>  }
+>}));
+>```
+>より下に記述しないと`req.flash() requires sessions`とエラーが出ます
+
+#### check
+- `/login`で登録していないユーザーを入力
+- 下記のようになれば成功
+![HelloWorld](./img/express_failure_login.png)

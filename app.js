@@ -55,9 +55,9 @@ passport.deserializeUser(function(user, done) {
 
 
 passport.use(new LocalStrategy({
-  usernameField: "username", 
-  passwordField: "password", 
-},function(username, password, done) {
+    usernameField: "username", 
+    passwordField: "password", 
+  },function(username, password, done) {
     connection.query(`select * from users where username="${username}"`,function(err,users){
       if(users != undefined && users.length == 1 && users[0].password == password){
         return done(null,users[0]);
