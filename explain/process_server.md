@@ -94,7 +94,7 @@ mysql>use TODOAPP;
 - テーブル構造はあとで説明します
 #### make users table
 ```sql
-mysql>create table users (id int not null primary key AUTO_INCREMENT, username varchar(20) not null unique, password varchar(20) not null, isAdmin boolean);
+mysql>create table users (id int not null primary key AUTO_INCREMENT, username varchar(100) not null unique, password varchar(100) not null, isAdmin boolean default false);
 ```
 #### make tasks table
 ```sql
@@ -762,3 +762,193 @@ passport.use(new LocalStrategy({
 - `/login`で登録していないユーザーを入力
 - 下記のようになれば成功
 ![HelloWorld](./img/express_failure_login.png)
+
+## 10. TodoApp Design
+ここまで学んだ内容でTodoアプリを作ることができます.  
+今回は**自身のタスクを確認でき,進捗を設定できる**一般ユーザーと,**それに加えタスクを生成できる**管理者ユーザーがいるTodoアプリを作成してみましょう!  
+まずはTodoアプリに必要なものを考えてみましょう.  
+### 1. Table structure
+#### 1. User
+ユーザーに必要なものは
+- ユーザーid(プライマリーキー)
+- ユーザーネーム
+- パスワード
+- ユーザーの種別  
+
+となります.  
+この内容をテーブルにしたものが先ほど作成した`users`テーブルです.
+```sql
+create table users (id int not null primary key AUTO_INCREMENT, username varchar(100) not null unique, password varchar(100) not null, isAdmin boolean default false);
+```
+
+#### 2. Task
+タスクに必要なものは
+- タスクID
+- タスクのタイトル
+- タスクの内容
+- 達成率
+- タスクの対象ユーザー(ID)
+
+となります.  
+この内容をテーブルにしたものが`tasks`テーブルです.
+```sql
+create table tasks (id int not null primary key AUTO_INCREMENT, title varchar(100) not null, message varchar(500) not null, percent int default 0,target int not null);
+```
+
+### 2. Necessary function
+Todoアプリに必要なテーブル構造を作ることができました.  
+次は必要な機能を考えてみましょう.  
+ - タスクを確認できるページ
+ - タスクの進捗を設定できるページ
+ - 管理者のみアクセス可能なタスク生成ページ
+
+ これらが必須機能となります.
+
+ #### 1. タスクを確認できるページ
+ まず前提条件として,タスクは自分が対象のモノのみ見れるものとします.  
+このページは`tasks`テーブルから,ログインしたアカウントの`id`とtasksの`target`が同じデータを取得し,表示することで作成できます.  
+表示するページを`mypage`とし作成していきます.  
+`app.js`に`mypageRouter`と`app.use('/mypage',mypageRouter)`を追加を忘れないようにしてください.  
+`mypage.ejs`と`mypage.js`を追加します. 
+
+`mypage.ejs`
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+  </head>
+  <body>
+    <h2>Hello, <%= username%></h2>
+    <hr>
+    <h2>My Tasks</h2>
+    <table class='table table-bordered'>
+        <thead class='thead-light'>
+            <tr>
+              <th>title</th>
+              <th>message</th>
+              <th>percent</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% for(let task of tasks){ %>
+                <tr>
+                  <td><%= task.title%></td>
+                  <td><%= task.message%></td>
+                  <td><%= task.percent%></td>
+                </tr>
+            <% }%>
+        </tbody>
+    </table>
+  </body>
+</html>
+```
+`mypage.js`
+```js
+var express = require('express');
+var router = express.Router();
+var connection = require('../dbConnect');
+
+router.get('/', function(req, res, next) {
+  if(req.isAuthenticated()){
+    var target = req.user.id;
+    connection.query(`select * from tasks where target=${target};`,function(err,result,field){
+        if(err){
+            //error処理
+        }
+        else{
+            var tasks = Object.values(JSON.parse(JSON.stringify(result)));
+            var username = req.user.username;
+            var isAdmin = req.user.isAdmin;
+            res.render('mypage',{'title':'mypage','tasks':tasks,'username':username});
+        }
+    });
+  }
+  else{
+    res.redirect('login');
+  }
+});
+module.exports = router;
+```
+#### result
+`test1`でログインしたときの`localhost:3000/mypage`の結果
+![Mypage1](./img/mypage1.png)
+
+実際にタスクを追加してみましょう.  
+この時`select * from users`等で`test1`のidを確認しましょう  
+`test1`のidが1のとき
+```sql
+insert into tasks values (0,'hello','world',0,1);
+```
+#### result
+![Mypage2](./img/mypage2.png)
+
+### TIPS : req.isAuthenticated()
+>passportの機能のひとつで,アクセスした人がログインしているかどうかを(`True` || `False`) で返すメソッド. ログインの有無を確認する際に使用する.
+
+
+#### 2. タスクの進捗を設定できるページ
+今回は`/mypage`に`POST`をすると進捗度合いを変更できる仕様にします.
+`mypage.ejs`のtableを変更
+```html
+<table class='table table-bordered'>
+    <thead class='thead-light'>
+        <tr>
+            <th>title</th>
+            <th>message</th>
+            <th>percent</th>
+            <th>new percent</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% for(let task of tasks){ %>
+          <tr>
+            <td><%= task.title%></td>
+            <td><%= task.message%></td>
+            <td><%= task.percent%></td>
+            <td>
+              <form action="/mypage" method="post">
+                <div>
+                  <label>percent：</label>
+                  <input type="number" name="newPercent" min="0" max="100" value="<%= task.percent%>"/>
+                  <input type="hidden" name="taskID" value="<%= task.id%>"/>
+                  <input type="hidden" name="target" value="<%= task.target%>"/>
+                  <input type="submit" value="Register"/>
+                </div>   
+              </form>
+            </td>
+          </tr>
+        <% }%>
+    </tbody>
+</table>
+```
+`mypage.js`に追加
+```js
+router.post('/', function(req,res,next){
+    console.log(req.body.target,req.user.id);
+    if(req.isAuthenticated() && req.body.target == req.user.id){
+        let per = req.body.newPercent,
+            taskID = req.body.taskID;
+        connection.query(`update tasks set percent=${per} where id=${taskID};`,function(err,result,fields){
+            if(err){
+                //エラー処理
+            }
+            else{
+                res.redirect('/mypage');
+            }
+        });
+    }
+    else{
+        res.status(404);
+        res.end('not found')
+    } 
+});
+```
+#### result
+POST前
+![Mypage3](./img/mypage3.png)
+POST後
+![Mypage4](./img/mypage4.png)
+`percent`が変更されていれば成功

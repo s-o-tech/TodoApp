@@ -18,9 +18,10 @@ let createError = require('http-errors'),
     passport = require('passport'),
     session = require('express-session'),
     LocalStrategy = require('passport-local').Strategy,
-    connection = require('./dbConnect');
+    connection = require('./dbConnect'),
     app = express();
 
+    //npm install --save mysql2
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
