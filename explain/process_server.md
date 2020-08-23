@@ -484,8 +484,9 @@ passport.use(new LocalStrategy(function(username,password,done){
 }))
 ```
 
-### 3. Make Login Page
+### 3. Make Login & Logout & Register Page
 
+#### Login
 `login.ejs`と`login.js`を追加  
 
 `views/login.ejs`
@@ -529,23 +530,124 @@ router.post('/', passport.authenticate('local', {
 ));
 
 module.exports = router;
-
 ```
+#### Logout
+`logout.js`を追加  
+`views/login.js`
+```js
+let express = require('express'),
+    router = express.Router();
+
+router.get('/', function(req, res, next) {
+  if(req.isAuthenticated()){
+    req.logout();
+    res.redirect('/');
+  }
+  else{
+    res.redirect('login');
+  }
+});
+
+module.exports = router;
+```
+#### Register
+`register.js`,`register.ejs`を追加  
+- POSTされた内容を`insert`でSQLに挿入
+
+`register.js`
+```js
+let express = require('express'),
+    router = express.Router();
+    connection = require('../dbConnect');
+
+router.get('/',function(req,res,next){
+    res.render('register',{errorMessage:''});
+});
+
+router.post('/', function(req,res,next){
+    let username = req.body.username,
+        password = req.body.password;
+    if(username == ''){
+        res.render('register',{errorMessage:'invalid username'});
+    }
+    else if(password == ''){
+        res.render('register',{errorMessage:'invalid password'});
+    }
+    else {
+        connection.query(`insert into users values (0,'${username}','${password}',False);`,function(err,result,fields){
+            if(err){
+                res.render('register',{errorMessage:`This username(${username}) is already used`});
+            }
+            else{
+                res.redirect('/');
+            }
+        });
+    }
+}
+);
+module.exports = router;
+```
+`register.ejs`
+- エラーメッセージを表示するために引数に`errorMessage`を使用
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+  </head>
+  <body>
+      <h1>Register Page</h1>
+      <%if(errorMessage != ''){%>
+        <div class="alert alert-danger">
+          <strong>Warning!</strong>  <%= errorMessage%>
+        </div>
+      <%}%>
+      <form action="/register" method="post">
+        <div>
+            <label>UserName：</label>
+            <input type="text" name="username"/>
+        </div>
+        <div>
+            <label>Password：</label>
+            <input type="password" name="password"/>
+        </div>
+        <div>
+            <input type="submit" value="Register"/>
+        </div>
+      </form>
+  </body>
+</html>
+```
+
 - Routerをapp.jsで追加
 
 ```js
 var loginRouter = require('./routes/login');
+var logoutRouter = require('./routes/logout');
+var registerRouter = require('./routes/register');
 
 app.use('/login',loginRouter);
+app.use('/logout',logoutRouter);
+app.use('register',registerRouter);
 ```
 
-#### check
+### check
+
+#### Login
 - `localhost:3000/login`にアクセス
 ![LoginTest](./img/express_login_test.png)
 - `username`,`password`に`test`を入力し,以下のようにindexページに飛んだらログイン処理成功
 ![LoginTestResult](./img/express_login_test_result.png)
 
 - ログインに失敗すると`/login`に戻される
+#### Logout
+
+#### Register
+
 
 ### 4. Use Database data
 データベースの`users`テーブルに登録した内容でログイン処理を行う
@@ -1136,3 +1238,61 @@ module.exports = router;
 
 これでTodoアプリの機能面の実装は完了です.
 
+## 11. Make Navbar
+
+Todoアプリは完成しましたが,使いづらいアプリになっています.  
+そこで`bootstrap4`のナビケーションバーを用い使いやすいアプリにします.
+
+
+TIPSで<head>を纏めたときに使用した`header.ejs`にナビゲーションバーを実装します.
+
+`header.ejs`
+```html
+<head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+</head>
+<header>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+        <a href="/" class="navbar-brand">TodoApp</a>
+        <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navi-items" aria-controls="navi-items" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div id="navi-items" class="navbar-collapse collapse hide">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="/">Top</a>
+              </li>
+            </ul>
+            <ul class="nav navbar-nav ml-auto">
+            <%if(!isAuth){%>
+              <li class="nav-item">
+                <a class="nav-link" href="/register"><span class="fas fa-user"></span> Register</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/login"><span class="fas fa-sign-in-alt"></span> Login</a>
+              </li>
+            <%}else{%>
+              <li class="nav-item">
+                <a class="nav-link" href="/mypage"><span class="fas fa-user-cog"></span> Mypage</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/logout"><span class="fas fa-sign-out-alt"></span> Logout</a>
+              </li>
+            <%}%>
+            </ul>
+        </div>
+    </nav>
+</header>
+```
+このNavbarの仕様
+- バーに
+
+[fontawesome](https://fontawesome.com)のアイコンを使用しています.
+
+
+`isAuth:req.isAuthenticated()`をレスポンスの連想配列に加える必要があります.
