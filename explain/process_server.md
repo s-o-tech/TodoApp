@@ -862,7 +862,7 @@ router.get('/', function(req, res, next) {
             var tasks = Object.values(JSON.parse(JSON.stringify(result)));
             var username = req.user.username;
             var isAdmin = req.user.isAdmin;
-            res.render('mypage',{'title':'mypage','tasks':tasks,'username':username});
+            res.render('mypage',{'tasks':tasks,'username':username});
         }
     });
   }
@@ -952,3 +952,187 @@ POST前
 POST後
 ![Mypage4](./img/mypage4.png)
 `percent`が変更されていれば成功
+
+
+#### 3. 管理者のみアクセス可能なタスク生成ページ
+管理者のみアクセスできるページは,usersテーブルで定義した`isAdmin`の真偽で処理を分岐させることで作成することができます.
+
+#### Create admin user
+今まで作成してきたユーザーは全て一般ユーザーでした. Adminユーザーを作成しましょう.  
+```sql
+mysql>insert into users value(0,'adminuser','password',True);
+```
+
+#### Admin page
+`/cretetask`を管理者のみアクセスできるページにします.  
+まずはGETリクエストのみ実装します.  
+
+`isAdmin`は`req.user.isAdmin`で確認できます.  
+これはログイン処理で使用した`done(null,users[0])`の第2引数の値が`req.user`に格納されるためです.  
+`req.user.isAdmin`の真偽でレスポンス内容を変えることで実装します.
+
+まずはアクセスできたら`SUCCESS`と表示されるページを作成しましょう.
+
+
+`createtask.js`
+
+```js
+var express = require('express');
+var router = express.Router();
+var connection = require('../dbConnect');
+
+router.get('/',function(req,res,next){
+    if(req.isAuthenticated() && req.user.isAdmin){
+      res.render('createTask',{});
+    }
+    else{
+        res.status(404);
+        res.end('not found');
+    }
+});
+module.exports = router;
+```
+- 通常のログイン確認を行う`req.isAuthenticated()`に加え,Adminであるか確認する`req.user.isAdmin`をif文に追加する
+- `else`では`404`を返している
+
+`createtask.ejs`
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+    </head>
+    <body>
+        <h1>SUCCESS</h1>
+    </body>
+</html>
+```
+
+### TIPS : include 
+>`mypage.ejs`と`createtask.ejs`の`<head></head>`が同じ  
+>ejsの**共通部分は別ファイルに記述**し,読み込むことができる  
+>
+>`header.ejs`
+>```html
+><head>
+>    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+>    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" ></script>
+>    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js"></script>
+></head>
+>```
+>別ファイルで読み込む場合  
+>```html
+><%- include('./header'); %>
+>```
+>`<head></head>`を記述していた箇所を置き換えることができる
+
+#### result
+`adminuser`でログインして確認してみましょう.
+
+- 管理者権限が無い,またはログインしていない場合  
+
+![createtask1](./img/createtask1.png)
+
+- 管理者権限がある場合
+
+![createtask2](./img/createtask2.png)
+
+
+#### 実装
+`createtask`ではタスクの`対象者`,`タイトル`,`内容`をtasksテーブルに登録します.
+
+`POST`リクエストでこれらの項目を登録できるように実装します.
+
+`createtask.js`
+```js
+var express = require('express');
+var router = express.Router();
+var connection = require('../dbConnect');
+
+router.get('/',function(req,res,next){
+    if(req.isAuthenticated() && req.user.isAdmin){
+        connection.query('select id,username from users;',function(err,result,fields){
+            if(err){
+                //エラー処理
+            }
+            else{
+                let users = Object.values(JSON.parse(JSON.stringify(result)));
+                res.render('createTask',{'users':users});
+            }
+        });
+    }
+    else{
+        res.status(404);
+        res.end('not found');
+    }
+});
+
+router.post('/', function(req,res,next){
+    if(req.isAuthenticated() && req.user.isAdmin){
+        let title = req.body.title,
+            message = req.body.message,
+            targetID = req.body.target;
+        connection.query(`insert into tasks values (0,'${title}','${message}',0,${targetID});`,function(err,result,fields){
+            if(err){
+                //エラー処理
+            }
+            else{
+                res.redirect('/mypage');
+            }
+        });
+    }
+    else{
+        res.status(404);
+        res.end('not found')
+    }
+    
+});
+module.exports = router;
+
+```
+
+`createtask.ejs`
+```html
+<!DOCTYPE html>
+<html>
+    <%- include('./header'); %>
+    <body>
+        <form action="/createtask" method="post">
+            <div>
+            <label>Target：</label>
+            <select name='target'>
+                <% for(let user of users){ %>
+                <option value="<%= user.id%>"><%= user.username%></option>
+                <% }%>
+            </select>
+            </div>
+            <div>
+                <label>Title：</label>
+                <input type="text" name="title"/>
+            </div>
+            <div>
+                <label>Message：</label>
+                <textarea name="message" cols="50" rows="5"></textarea>
+            </div>
+            <div>
+                <input type="submit" value="Register"/>
+            </div>
+      </form>
+  </body>
+</html>
+
+```
+
+#### result
+
+`/createtask`でこの内容を登録し
+![createtask3](./img/createtask3.png)
+
+このようになれば成功
+![createtask4](./img/createtask4.png)
+
+
+これでTodoアプリの機能面の実装は完了です.
+
