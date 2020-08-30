@@ -514,9 +514,9 @@ passport.use(new LocalStrategy(function(username,password,done){
 ```
 `routes/login.js`
 ```js
-let express = require('express'),
-    router = express.Router(),
-    passport = require('passport');
+var express = require('express');
+var router = express.Router();
+var passport = require('passport');
 
 router.get('/',function(req,res,next){
     res.render('login');
@@ -533,10 +533,12 @@ module.exports = router;
 ```
 #### Logout
 `logout.js`を追加  
-`views/login.js`
+- Logout処理は`req.logout()`で簡単に行うことができる
+
+`views/logout.js`
 ```js
-let express = require('express'),
-    router = express.Router();
+var express = require('express');
+var router = express.Router();
 
 router.get('/', function(req, res, next) {
   if(req.isAuthenticated()){
@@ -556,9 +558,9 @@ module.exports = router;
 
 `register.js`
 ```js
-let express = require('express'),
-    router = express.Router();
-    connection = require('../dbConnect');
+var express = require('express');
+var router = express.Router();
+var connection = require('../dbConnect');
 
 router.get('/',function(req,res,next){
     res.render('register',{errorMessage:''});
@@ -583,8 +585,7 @@ router.post('/', function(req,res,next){
             }
         });
     }
-}
-);
+});
 module.exports = router;
 ```
 `register.ejs`
@@ -632,7 +633,7 @@ var registerRouter = require('./routes/register');
 
 app.use('/login',loginRouter);
 app.use('/logout',logoutRouter);
-app.use('register',registerRouter);
+app.use('/register',registerRouter);
 ```
 
 ### check
@@ -645,9 +646,21 @@ app.use('register',registerRouter);
 
 - ログインに失敗すると`/login`に戻される
 #### Logout
+- `localhost:3000/logout`にアクセス
+
+確認するには
+- `localhost:3000/`にリダイレクトされる
+- `localhost:3000/login`にアクセスし、ログインページが出る
+
+この2つが成功すればOK
 
 #### Register
+- `localhost:3000/register`にアクセス
 
+ユーザー`test100`を作成
+![RegisterTest](./img/register.png)
+
+`localhost:3000/login`で作成したユーザーでログインできればOK
 
 ### 4. Use Database data
 データベースの`users`テーブルに登録した内容でログイン処理を行う
@@ -1290,9 +1303,19 @@ TIPSで<head>を纏めたときに使用した`header.ejs`にナビゲーショ�
 </header>
 ```
 このNavbarの仕様
-- バーに
+- バーに[fontawesome](https://fontawesome.com)のアイコンを使用しています.
+- `isAuth:req.isAuthenticated()`をレスポンスの連想配列に加える必要があります.  
+ex)`index.js`
+`res.render`に`isAuth`のパラメータを追加
+```js
+var express = require('express');
+var router = express.Router();
 
-[fontawesome](https://fontawesome.com)のアイコンを使用しています.
+/* GET home page. */
+router.get('/', function(req, res, next) {
+  res.render('index', {title: 'Express',isAuth:req.isAuthenticated()});
+});
 
+module.exports = router;
 
-`isAuth:req.isAuthenticated()`をレスポンスの連想配列に加える必要があります.
+```
